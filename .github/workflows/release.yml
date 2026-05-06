@@ -8,7 +8,6 @@ on:
 jobs:
   create-draft-release:
     runs-on: ubuntu-latest
-    environment: release-signing
     permissions:
       contents: write
     steps:
@@ -20,6 +19,15 @@ jobs:
         with:
           draft: true
           name: Release ${{ github.ref_name }}
+
+  upload-release-signatures:
+    needs: create-draft-release
+    runs-on: ubuntu-latest
+    environment: release-signing
+    steps:
+      - name: Awaiting Signature Upload
+        run: echo "Please upload the signature files to the draft release, then approve this job."
+
 
   build-and-publish:
     needs: create-draft-release
