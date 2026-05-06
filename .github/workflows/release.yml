@@ -99,7 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           AUTHORIZED_KEYS=(
-            "30471727B8A32BDDDFC5CF0D6CCCA66081FD42D"
+            "330471727B8A32BDDDFC5CF0D6CCCA66081FD42D"
           )
           MAX_RETRIES=3
           for KEY in "${AUTHORIZED_KEYS[@]}"; do
@@ -123,7 +123,7 @@ jobs:
           set -euo pipefail
 
           AUTHORIZED_KEYS=(
-            "30471727B8A32BDDDFC5CF0D6CCCA66081FD42D"
+            "330471727B8A32BDDDFC5CF0D6CCCA66081FD42D"
           )
 
           MERGED="citrea-${TAG}-${PLATFORM}.signatures.asc"
