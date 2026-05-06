@@ -44,6 +44,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Install GitHub CLI
+        run: |
+         sudo apt update
+         sudo apt install -y gh
+
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
