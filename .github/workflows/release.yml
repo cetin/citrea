@@ -65,14 +65,24 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p sigs
-          gh release view "$TAG" -R cetin/citrea
+          # 1. Locate the specific Asset ID from the REST endpoint
+          echo "Finding asset in draft release..."
           
-          # 2. Download the file
-          echo "Downloading signature..."
-          gh release download "$TAG" \
-            -R cetin/citrea \
-            -p "citrea-${TAG}-${PLATFORM}.cetin.asc" \
-            -D sigs/
+          ASSET_ID=$(gh api repos/cetin/citrea/releases \
+            --jq "map(select(.tag_name == \"$TAG\" and .draft == true)) | .[0].assets[] | select(.name == \"citrea-${TAG}-${PLATFORM}.cetin.asc\") | .id")
+          
+          if [[ -z "$ASSET_ID" || "$ASSET_ID" == "null" ]]; then
+            echo "FAIL: Could not find draft release asset for ${PLATFORM}."
+            exit 1
+          fi
+          
+          # 2. Download the asset directly using its REST ID
+          echo "Downloading signature (Asset ID: $ASSET_ID)..."
+          
+          gh api \
+            -H "Accept: application/octet-stream" \
+            "repos/cetin/citrea/releases/assets/$ASSET_ID" \
+            > "sigs/citrea-${TAG}-${PLATFORM}.cetin.asc"
 
           COUNT=$(ls sigs/*.asc 2>/dev/null | wc -l)
           if [[ "$COUNT" -ne 1 ]]; then
