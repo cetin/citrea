@@ -31,11 +31,7 @@ jobs:
       matrix:
         include:
           - platform: linux-amd64
-            runner: ubicloud-standard-30
-          - platform: linux-arm64
-            runner: ubicloud-standard-30-arm
-          - platform: osx-arm64
-            runner: macos-latest
+            runner: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -89,9 +85,7 @@ jobs:
         run: |
           set -euo pipefail
           AUTHORIZED_KEYS=(
-            "7F52EC9A995025E87F3AF1200C17966C01E52A9A"
-            "CFF759A7C0EF99813BD1E6EE85CCAD8803F887A0"
-            "350B725CBA2D7EC3A1AD048C00980777D2839E81"
+            "30471727B8A32BDDDFC5CF0D6CCCA66081FD42D"
           )
           MAX_RETRIES=3
           for KEY in "${AUTHORIZED_KEYS[@]}"; do
@@ -115,9 +109,7 @@ jobs:
           set -euo pipefail
 
           AUTHORIZED_KEYS=(
-            "7F52EC9A995025E87F3AF1200C17966C01E52A9A"
-            "CFF759A7C0EF99813BD1E6EE85CCAD8803F887A0"
-            "350B725CBA2D7EC3A1AD048C00980777D2839E81"
+            "30471727B8A32BDDDFC5CF0D6CCCA66081FD42D"
           )
 
           MERGED="citrea-${TAG}-${PLATFORM}.signatures.asc"
@@ -163,10 +155,10 @@ jobs:
           done <<< "$SIG_STATUS"
 
           echo "-----------------------------------"
-          echo "Authorized signatures verified: $VALID_COUNT / 3"
+          echo "Authorized signatures verified: $VALID_COUNT / 1"
 
-          if [[ "$VALID_COUNT" -ne 3 ]]; then
-            echo "FAIL: All 3 authorized signers required. Got $VALID_COUNT."
+          if [[ "$VALID_COUNT" -ne 1 ]]; then
+            echo "FAIL: All 1 authorized signers required. Got $VALID_COUNT."
             exit 1
           fi
 
@@ -208,11 +200,7 @@ jobs:
           TAG="${{ github.ref_name }}"
           (cd artifacts && sha256sum \
             "citrea-${TAG}-linux-amd64" \
-            "citrea-${TAG}-linux-arm64" \
-            "citrea-${TAG}-osx-arm64" \
             "citrea-cli-${TAG}-linux-amd64" \
-            "citrea-cli-${TAG}-linux-arm64" \
-            "citrea-cli-${TAG}-osx-arm64" \
             > SHA256SUMS.txt)
 
       - name: Publish release
@@ -222,27 +210,17 @@ jobs:
           name: Release ${{ github.ref_name }} — Verified
           body: |
             This release has been cryptographically verified.
-            All 3 authorized maintainers independently built and signed each binary via reproducible builds.
+            All 1 authorized maintainers independently built and signed each binary via reproducible builds.
 
             Includes:
             - citrea-${{ github.ref_name }}-linux-amd64
-            - citrea-${{ github.ref_name }}-linux-arm64
-            - citrea-${{ github.ref_name }}-osx-arm64
             - citrea-cli-${{ github.ref_name }}-linux-amd64
-            - citrea-cli-${{ github.ref_name }}-linux-arm64
-            - citrea-cli-${{ github.ref_name }}-osx-arm64
             - Per-platform merged `.signatures.asc` files
             - SHA256SUMS.txt
           files: |
             artifacts/citrea-${{ github.ref_name }}-linux-amd64
-            artifacts/citrea-${{ github.ref_name }}-linux-arm64
-            artifacts/citrea-${{ github.ref_name }}-osx-arm64
             artifacts/citrea-cli-${{ github.ref_name }}-linux-amd64
-            artifacts/citrea-cli-${{ github.ref_name }}-linux-arm64
-            artifacts/citrea-cli-${{ github.ref_name }}-osx-arm64
             artifacts/citrea-${{ github.ref_name }}-linux-amd64.signatures.asc
-            artifacts/citrea-${{ github.ref_name }}-linux-arm64.signatures.asc
-            artifacts/citrea-${{ github.ref_name }}-osx-arm64.signatures.asc
             artifacts/SHA256SUMS.txt
 
   update-dockerhub:
@@ -267,8 +245,7 @@ jobs:
           set -euo pipefail
           RELEASE="${{ github.ref_name }}"
           cp "artifacts/citrea-${RELEASE}-linux-amd64" docker/full-node/citrea-amd64
-          cp "artifacts/citrea-${RELEASE}-linux-arm64" docker/full-node/citrea-arm64
-          chmod +x docker/full-node/citrea-amd64 docker/full-node/citrea-arm64
+          chmod +x docker/full-node/citrea-amd64
 
           mkdir -p docker/full-node/genesis
           cp -r resources/genesis/mainnet docker/full-node/genesis/
@@ -286,7 +263,7 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push multi-arch image
+      - name: Build and push image
         id: build
         uses: docker/build-push-action@v5
         env:
@@ -294,7 +271,7 @@ jobs:
         with:
           context: docker/full-node/
           file: docker/full-node/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           provenance: false
           tags: |
