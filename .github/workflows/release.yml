@@ -129,7 +129,7 @@ jobs:
           MERGED="citrea-${TAG}-${PLATFORM}.signatures.asc"
           BINARY="./result/bin/citrea"
 
-          SIG_STATUS=$(gpg --status-fd 1 --verify "$MERGED" "$BINARY" 2>/dev/null)
+          SIG_STATUS=$(gpg --status-fd 1 --verify "$MERGED" "$BINARY" 2>/dev/null || true)
           echo "$SIG_STATUS"
 
           if echo "$SIG_STATUS" | grep -q "BADSIG"; then
