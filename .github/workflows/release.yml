@@ -30,7 +30,7 @@ jobs:
 
 
   build-and-publish:
-    needs: create-draft-release
+    needs: [ create-draft-release,upload-release-signatures ]
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
