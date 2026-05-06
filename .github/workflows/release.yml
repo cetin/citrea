@@ -65,9 +65,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p sigs
+          gh release view "$TAG" -R cetin/citrea
+          
+          # 2. Download the file
+          echo "Downloading signature..."
           gh release download "$TAG" \
-            --draft \
-            -R ${{ github.repository }} \
+            -R cetin/citrea \
             -p "citrea-${TAG}-${PLATFORM}.cetin.asc" \
             -D sigs/
 
