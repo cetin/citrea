@@ -66,14 +66,12 @@ jobs:
           set -euo pipefail
           mkdir -p sigs
           gh release download "$TAG" \
-            -p "citrea-${TAG}-${PLATFORM}.ekrem.asc" \
-            -p "citrea-${TAG}-${PLATFORM}.esad.asc" \
-            -p "citrea-${TAG}-${PLATFORM}.emre.asc" \
+            -p "citrea-${TAG}-${PLATFORM}.cetin.asc" \
             -D sigs/
 
           COUNT=$(ls sigs/*.asc 2>/dev/null | wc -l)
-          if [[ "$COUNT" -ne 3 ]]; then
-            echo "FAIL: Expected 3 signatures for ${PLATFORM}, found ${COUNT}."
+          if [[ "$COUNT" -ne 1 ]]; then
+            echo "FAIL: Expected 1 signatures for ${PLATFORM}, found ${COUNT}."
             exit 1
           fi
 
@@ -83,9 +81,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          cat sigs/citrea-${TAG}-${PLATFORM}.ekrem.asc \
-              sigs/citrea-${TAG}-${PLATFORM}.esad.asc \
-              sigs/citrea-${TAG}-${PLATFORM}.emre.asc \
+          cat sigs/citrea-${TAG}-${PLATFORM}.cetin.asc \
               > "citrea-${TAG}-${PLATFORM}.signatures.asc"
 
       - name: Build
