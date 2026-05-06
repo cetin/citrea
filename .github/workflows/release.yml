@@ -66,6 +66,8 @@ jobs:
           set -euo pipefail
           mkdir -p sigs
           gh release download "$TAG" \
+            --draft \
+            -R ${{ github.repository }} \
             -p "citrea-${TAG}-${PLATFORM}.cetin.asc" \
             -D sigs/
 
