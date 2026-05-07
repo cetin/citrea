@@ -89,7 +89,9 @@
           # the bundled jemalloc in tikv-jemalloc-sys 0.6.0 (its strerror_r call
           # predates the XSI-compliant prototype). Demote it back to a warning;
           # doesn't affect codegen, so reproducibility is unchanged.
-          NIX_CFLAGS_COMPILE = "-Wno-int-conversion";
+          NIX_CFLAGS_COMPILE =
+            "-Wno-int-conversion"
+            + pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isx86_64 " -D__BLST_PORTABLE__";
 
           RUSTFLAGS = builtins.concatStringsSep " " [
             "--remap-path-prefix=${src}=/build/source"
