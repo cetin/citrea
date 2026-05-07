@@ -128,6 +128,10 @@ jobs:
 
           MERGED="citrea-${TAG}-${PLATFORM}.signatures.asc"
           BINARY="./result/bin/citrea"
+          echo "--- DEBUG: HASH CHECK ---"
+          echo "CI Binary hash:"
+          sha256sum "$BINARY"
+          echo "-------------------------"
 
           SIG_STATUS=$(gpg --status-fd 1 --verify "$MERGED" "$BINARY" 2>/dev/null || true)
           echo "$SIG_STATUS"
