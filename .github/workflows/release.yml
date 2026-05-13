@@ -124,13 +124,12 @@ jobs:
             echo "=== Verifying ${BINARY_NAME} ==="
 
             set +e
-            SIG_STATUS=$(gpg --status-fd 1 --verify "$MERGED" "$BINARY_PATH" 2>/dev/null)
+            SIG_STATUS=$(gpg --status-fd 1 --verify "$MERGED" "$BINARY_PATH")
             GPG_EXIT=$?
             set -e
 
-            echo "$SIG_STATUS"
-
             if [[ "$GPG_EXIT" -ne 0 ]] && ! echo "$SIG_STATUS" | grep -q "VALIDSIG"; then
+              echo "$SIG_STATUS"
               echo "FAIL: gpg verification exited with code $GPG_EXIT and no valid signatures found for ${BINARY_NAME}."
               exit 1
             fi
@@ -165,17 +164,15 @@ jobs:
                   VALID_COUNT=$((VALID_COUNT + 1))
                   SEEN_KEYS[$PRIMARY_FPR]=1
                   echo "✓ $PRIMARY_FPR"
-                else
-                  echo "Duplicate from $PRIMARY_FPR — ignored."
                 fi
               fi
             done <<< "$SIG_STATUS"
 
             echo "-----------------------------------"
-            echo "Authorized signatures verified: $VALID_COUNT / 3"
+            echo "Authorized signatures verified: $VALID_COUNT / 1"
 
-            if [[ "$VALID_COUNT" -ne 1 ]]; then
-              echo "FAIL: All 1 authorized signers required for ${BINARY_NAME}. Got $VALID_COUNT."
+            if [[ "$VALID_COUNT" -lt 1 ]]; then
+              echo "FAIL: Authorized signer required for ${BINARY_NAME}. Got $VALID_COUNT."
               exit 1
             fi
 
