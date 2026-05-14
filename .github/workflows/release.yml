@@ -85,6 +85,9 @@ jobs:
           done
 
       - name: Build
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
         run: nix build ./nix#citrea
 
       - name: Rebuild to verify reproducibility
