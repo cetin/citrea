@@ -99,13 +99,19 @@ jobs:
           MAX_RETRIES=3
           for KEY in "${KEYS[@]}"; do
             for i in $(seq 1 $MAX_RETRIES); do
-              if gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "$KEY"; then
+              
+              # gpg --recv-keys YERİNE BURAYI EKLİYORUZ:
+              if curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${KEY}" | gpg --import; then
+                echo "✓ Successfully imported key $KEY"
                 break
               fi
+              
               if [[ "$i" -eq "$MAX_RETRIES" ]]; then
                 echo "FAIL: Could not import key $KEY"
                 exit 1
               fi
+              
+              echo "Retrying in 5 seconds..."
               sleep 5
             done
           done
