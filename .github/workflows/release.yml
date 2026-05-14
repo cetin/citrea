@@ -85,10 +85,9 @@ jobs:
           done
 
       - name: Build
-        env:
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-        run: nix build ./nix#citrea
+        run: nix build ./nix#citrea \
+            --option access-tokens "github.com=" \
+            --extra-experimental-features "nix-command flakes"
 
       - name: Rebuild to verify reproducibility
         run: nix build ./nix#citrea --rebuild
