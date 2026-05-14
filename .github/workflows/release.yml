@@ -85,9 +85,7 @@ jobs:
           done
 
       - name: Build
-        run: nix build ./nix#citrea \
-            --option access-tokens "github.com=" \
-            --extra-experimental-features "nix-command flakes"
+        run: nix build ./nix#citrea --option access-tokens "github.com=" --extra-experimental-features "nix-command flakes"
 
       - name: Rebuild to verify reproducibility
         run: nix build ./nix#citrea --rebuild
