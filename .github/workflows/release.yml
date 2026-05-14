@@ -148,7 +148,7 @@ jobs:
             fi
 
             local VALID_COUNT=0
-            declare -A SEEN_KEYS
+            local SEEN_KEYS_STR=""
 
             while IFS= read -r line; do
               if echo "$line" | grep -q "VALIDSIG"; then
@@ -168,9 +168,10 @@ jobs:
                   exit 1
                 fi
 
-                if [[ -z "${SEEN_KEYS[$PRIMARY_FPR]+x}" ]]; then
+                # Bash 3.2 uyumlu "daha önce gördük mü" kontrolü
+                if [[ "$SEEN_KEYS_STR" != *"$PRIMARY_FPR"* ]]; then
                   VALID_COUNT=$((VALID_COUNT + 1))
-                  SEEN_KEYS[$PRIMARY_FPR]=1
+                  SEEN_KEYS_STR="$SEEN_KEYS_STR $PRIMARY_FPR"
                   echo "✓ $PRIMARY_FPR"
                 fi
               fi
