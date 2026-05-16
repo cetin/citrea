@@ -39,8 +39,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - platform: linux-amd64
+            runner: self-hosted-linux-amd64
+          - platform: linux-arm64
+            runner: self-hosted-linux-arm64
           - platform: osx-arm64
-            runner: self-hosted
+            runner: macOS
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -85,9 +89,7 @@ jobs:
           done
 
       - name: Build
-        env:
-          VALID_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: nix build ./nix#citrea --option access-tokens "github.com=$VALID_TOKEN" --extra-experimental-features "nix-command flakes"
+        run: nix build ./nix#citrea
 
       - name: Rebuild to verify reproducibility
         run: nix build ./nix#citrea --rebuild
@@ -227,7 +229,11 @@ jobs:
           set -euo pipefail
           TAG="${{ github.ref_name }}"
           (cd artifacts && sha256sum \
+            "citrea-${TAG}-linux-amd64" \
+            "citrea-${TAG}-linux-arm64" \
             "citrea-${TAG}-osx-arm64" \
+            "citrea-cli-${TAG}-linux-amd64" \
+            "citrea-cli-${TAG}-linux-arm64" \
             "citrea-cli-${TAG}-osx-arm64" \
             > SHA256SUMS.txt)
 
@@ -241,14 +247,26 @@ jobs:
             All 1 authorized maintainers independently built and signed both `citrea` and `citrea-cli` for each platform via reproducible builds.
 
             Includes:
+            - citrea-${{ github.ref_name }}-linux-amd64
+            - citrea-${{ github.ref_name }}-linux-arm64
             - citrea-${{ github.ref_name }}-osx-arm64
+            - citrea-cli-${{ github.ref_name }}-linux-amd64
+            - citrea-cli-${{ github.ref_name }}-linux-arm64
             - citrea-cli-${{ github.ref_name }}-osx-arm64
             - Per-platform merged `.signatures.asc` files for both binaries
             - SHA256SUMS.txt
           files: |
+            artifacts/citrea-${{ github.ref_name }}-linux-amd64
+            artifacts/citrea-${{ github.ref_name }}-linux-arm64
             artifacts/citrea-${{ github.ref_name }}-osx-arm64
+            artifacts/citrea-cli-${{ github.ref_name }}-linux-amd64
+            artifacts/citrea-cli-${{ github.ref_name }}-linux-arm64
             artifacts/citrea-cli-${{ github.ref_name }}-osx-arm64
+            artifacts/citrea-${{ github.ref_name }}-linux-amd64.signatures.asc
+            artifacts/citrea-${{ github.ref_name }}-linux-arm64.signatures.asc
             artifacts/citrea-${{ github.ref_name }}-osx-arm64.signatures.asc
+            artifacts/citrea-cli-${{ github.ref_name }}-linux-amd64.signatures.asc
+            artifacts/citrea-cli-${{ github.ref_name }}-linux-arm64.signatures.asc
             artifacts/citrea-cli-${{ github.ref_name }}-osx-arm64.signatures.asc
             artifacts/SHA256SUMS.txt
 
