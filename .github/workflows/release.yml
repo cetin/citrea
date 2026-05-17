@@ -88,12 +88,6 @@ jobs:
                 > "${BINARY}-${TAG}-${PLATFORM}.signatures.asc"
           done
 
-      - name: Build
-        run: nix build ./nix#citrea
-
-      - name: Rebuild to verify reproducibility
-        run: nix build ./nix#citrea --rebuild
-
       - name: Import authorized GPG keys
         run: |
           set -euo pipefail
@@ -117,6 +111,60 @@ jobs:
             done
           done
 
+      - name: Verify signature issuers (Fail-fast pre-check)
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          read -r -a AUTHORIZED_KEY_LIST <<< "$AUTHORIZED_KEYS"
+          
+          check_issuer() {
+            local SIG_FILE="$1"
+            echo "=== Checking issuers in ${SIG_FILE} ==="
+            
+            # Extract issuer key IDs directly from the signature packets
+            ISSUERS=$(gpg --list-packets "$SIG_FILE" | awk '/issuer key ID/ {print $5}')
+            
+            if [[ -z "$ISSUERS" ]]; then
+              echo "FAIL: Could not extract issuer key ID from $SIG_FILE. Invalid signature format."
+              exit 1
+            fi
+            
+            for ISSUER in $ISSUERS; do
+              # Resolve the primary fingerprint for the issuer's key ID
+              PRIMARY_FPR=$(gpg --with-colons --list-keys "$ISSUER" 2>/dev/null | awk -F: '$1=="fpr"{print $10; exit}')
+              
+              if [[ -z "$PRIMARY_FPR" ]]; then
+                echo "FAIL: Key ID $ISSUER not found in local keyring. Signature is from an unknown key!"
+                exit 1
+              fi
+              
+              AUTHORIZED=false
+              for AUTH_FPR in "${AUTHORIZED_KEY_LIST[@]}"; do
+                if [[ "$PRIMARY_FPR" == "$AUTH_FPR" ]]; then
+                  AUTHORIZED=true
+                  break
+                fi
+              done
+              
+              if ! $AUTHORIZED; then
+                echo "FAIL: Unauthorized key ($PRIMARY_FPR) signed the release! Aborting build to save time."
+                exit 1
+              fi
+              echo "✓ Pre-check passed: Issuer $ISSUER maps to authorized primary key $PRIMARY_FPR"
+            done
+          }
+          
+          check_issuer "citrea-${TAG}-${PLATFORM}.signatures.asc"
+          check_issuer "citrea-cli-${TAG}-${PLATFORM}.signatures.asc"
+
+      - name: Build
+        run: nix build ./nix#citrea
+
+      - name: Rebuild to verify reproducibility
+        run: nix build ./nix#citrea --rebuild
+
       - name: Verify merged signatures against binaries
         env:
           PLATFORM: ${{ matrix.platform }}
@@ -130,7 +178,7 @@ jobs:
             local BINARY_PATH="$2"
             local MERGED="${BINARY_NAME}-${TAG}-${PLATFORM}.signatures.asc"
 
-            echo "=== Verifying ${BINARY_NAME} ==="
+            echo "=== Verifying ${BINARY_NAME} against binary content ==="
 
             set +e
             SIG_STATUS=$(gpg --status-fd 1 --verify "$MERGED" "$BINARY_PATH")
@@ -172,7 +220,7 @@ jobs:
                 if [[ "$SEEN_KEYS_STR" != *"$PRIMARY_FPR"* ]]; then
                   VALID_COUNT=$((VALID_COUNT + 1))
                   SEEN_KEYS_STR="$SEEN_KEYS_STR $PRIMARY_FPR"
-                  echo "✓ $PRIMARY_FPR"
+                  echo "✓ $PRIMARY_FPR signature perfectly matches binary content"
                 fi
               fi
             done <<< "$SIG_STATUS"
