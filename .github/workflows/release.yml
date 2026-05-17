@@ -34,7 +34,7 @@ jobs:
       contents: write
     env:
       AUTHORIZED_KEYS: >-
-        330471727B8A32BDDDFC5CF0D6CCCA66081FD42D
+        350B725CBA2D7EC3A1AD048C00980777D2839E81
     strategy:
       fail-fast: false
       matrix:
