@@ -123,8 +123,30 @@ jobs:
             local SIG_FILE="$1"
             echo "=== Checking issuers in ${SIG_FILE} ==="
             
-            # Extract issuer key IDs directly from the signature packets
-            ISSUERS=$(gpg --list-packets "$SIG_FILE" | awk '/issuer key ID/ {print $5}')
+            # DEBUG: Let's see if the file exists, its size, and what's inside it!
+            ls -la "$SIG_FILE"
+            echo "--- FILE CONTENTS START ---"
+            cat "$SIG_FILE"
+            echo -e "\n--- FILE CONTENTS END ---"
+            
+            # Temporarily turn off 'exit on error' so we can catch GPG's stderr
+            set +e
+            
+            # Run GPG and capture both stdout and stderr
+            GPG_OUTPUT=$(gpg --list-packets "$SIG_FILE" 2>&1)
+            GPG_EXIT_CODE=$?
+            
+            if [[ "$GPG_EXIT_CODE" -ne 0 ]]; then
+              echo "FAIL: GPG crashed with exit code $GPG_EXIT_CODE."
+              echo "GPG Error output: $GPG_OUTPUT"
+              exit 1
+            fi
+            
+            # Turn 'exit on error' back on
+            set -e
+            
+            # Extract issuer key IDs
+            ISSUERS=$(echo "$GPG_OUTPUT" | awk '/issuer key ID/ {print $5}')
             
             if [[ -z "$ISSUERS" ]]; then
               echo "FAIL: Could not extract issuer key ID from $SIG_FILE. Invalid signature format."
@@ -132,7 +154,6 @@ jobs:
             fi
             
             for ISSUER in $ISSUERS; do
-              # Resolve the primary fingerprint for the issuer's key ID
               PRIMARY_FPR=$(gpg --with-colons --list-keys "$ISSUER" 2>/dev/null | awk -F: '$1=="fpr"{print $10; exit}')
               
               if [[ -z "$PRIMARY_FPR" ]]; then
@@ -149,7 +170,7 @@ jobs:
               done
               
               if ! $AUTHORIZED; then
-                echo "FAIL: Unauthorized key ($PRIMARY_FPR) signed the release! Aborting build to save time."
+                echo "FAIL: Unauthorized key ($PRIMARY_FPR) signed the release! Aborting build."
                 exit 1
               fi
               echo "✓ Pre-check passed: Issuer $ISSUER maps to authorized primary key $PRIMARY_FPR"
@@ -158,7 +179,6 @@ jobs:
           
           check_issuer "citrea-${TAG}-${PLATFORM}.signatures.asc"
           check_issuer "citrea-cli-${TAG}-${PLATFORM}.signatures.asc"
-
       - name: Build
         run: nix build ./nix#citrea
 
