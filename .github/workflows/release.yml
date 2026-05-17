@@ -129,8 +129,8 @@ jobs:
             echo "=== Checking issuers in ${SIG_FILE} ==="
             
             # Extract issuer key IDs
-            ISSUERS=$(gpg --list-packets "$SIG_FILE" | awk '/issuer key ID/ {print $5}')
-            
+            ISSUERS=$(gpg --list-packets "$SIG_FILE" | grep -o "issuer key ID [0-9A-Fa-f]*" | awk '{print $4}')     
+          
             if [[ -z "$ISSUERS" ]]; then
               echo "FAIL: Could not extract issuer key ID from $SIG_FILE. Invalid signature format."
               exit 1
