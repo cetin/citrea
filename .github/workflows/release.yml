@@ -102,7 +102,6 @@ jobs:
           for KEY in "${KEYS[@]}"; do
             for i in $(seq 1 $MAX_RETRIES); do
               
-              # gpg --recv-keys YERİNE BURAYI EKLİYORUZ:
               if curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${KEY}" | gpg --import; then
                 echo "✓ Successfully imported key $KEY"
                 break
@@ -170,7 +169,6 @@ jobs:
                   exit 1
                 fi
 
-                # Bash 3.2 uyumlu "daha önce gördük mü" kontrolü
                 if [[ "$SEEN_KEYS_STR" != *"$PRIMARY_FPR"* ]]; then
                   VALID_COUNT=$((VALID_COUNT + 1))
                   SEEN_KEYS_STR="$SEEN_KEYS_STR $PRIMARY_FPR"
