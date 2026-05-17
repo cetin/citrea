@@ -335,7 +335,10 @@ jobs:
           IMAGE_REF: ${{ vars.DOCKERHUB_USERNAME }}/citrea-full-node@${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
-          cosign sign --yes "${IMAGE_REF}"
+          cosign sign --yes --recursive "${IMAGE_REF}"
+          
+          echo "Waiting for Docker Hub API to propagate the signature tag..."
+          sleep 15
 
       - name: Verify signed Docker image
         shell: bash
