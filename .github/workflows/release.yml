@@ -96,13 +96,18 @@ jobs:
           for KEY in "${KEYS[@]}"; do
             for i in $(seq 1 $MAX_RETRIES); do
               
-              if curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${KEY}" | gpg --import; then
+              # Fetch the key and store it in a variable first
+              RESPONSE=$(curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${KEY}")
+              
+              # Ensure it's actually a GPG key, not an HTML error page
+              if echo "$RESPONSE" | grep -q "BEGIN PGP PUBLIC KEY BLOCK"; then
+                echo "$RESPONSE" | gpg --import
                 echo "✓ Successfully imported key $KEY"
                 break
               fi
               
               if [[ "$i" -eq "$MAX_RETRIES" ]]; then
-                echo "FAIL: Could not import key $KEY"
+                echo "FAIL: Could not download a valid key for $KEY from the keyserver. Are you sure it is published?"
                 exit 1
               fi
               
@@ -123,30 +128,8 @@ jobs:
             local SIG_FILE="$1"
             echo "=== Checking issuers in ${SIG_FILE} ==="
             
-            # DEBUG: Let's see if the file exists, its size, and what's inside it!
-            ls -la "$SIG_FILE"
-            echo "--- FILE CONTENTS START ---"
-            cat "$SIG_FILE"
-            echo -e "\n--- FILE CONTENTS END ---"
-            
-            # Temporarily turn off 'exit on error' so we can catch GPG's stderr
-            set +e
-            
-            # Run GPG and capture both stdout and stderr
-            GPG_OUTPUT=$(gpg --list-packets "$SIG_FILE" 2>&1)
-            GPG_EXIT_CODE=$?
-            
-            if [[ "$GPG_EXIT_CODE" -ne 0 ]]; then
-              echo "FAIL: GPG crashed with exit code $GPG_EXIT_CODE."
-              echo "GPG Error output: $GPG_OUTPUT"
-              exit 1
-            fi
-            
-            # Turn 'exit on error' back on
-            set -e
-            
             # Extract issuer key IDs
-            ISSUERS=$(echo "$GPG_OUTPUT" | awk '/issuer key ID/ {print $5}')
+            ISSUERS=$(gpg --list-packets "$SIG_FILE" | awk '/issuer key ID/ {print $5}')
             
             if [[ -z "$ISSUERS" ]]; then
               echo "FAIL: Could not extract issuer key ID from $SIG_FILE. Invalid signature format."
@@ -154,10 +137,12 @@ jobs:
             fi
             
             for ISSUER in $ISSUERS; do
-              PRIMARY_FPR=$(gpg --with-colons --list-keys "$ISSUER" 2>/dev/null | awk -F: '$1=="fpr"{print $10; exit}')
+              # Added '|| true' to prevent pipefail from crashing the script on exit code 2
+              PRIMARY_FPR=$(gpg --with-colons --list-keys "$ISSUER" 2>/dev/null | awk -F: '$1=="fpr"{print $10; exit}' || true)
               
               if [[ -z "$PRIMARY_FPR" ]]; then
-                echo "FAIL: Key ID $ISSUER not found in local keyring. Signature is from an unknown key!"
+                echo "FAIL: Signature belongs to Key ID $ISSUER, but this key is NOT in the local keyring!"
+                echo "Either the import step failed, or the release was signed by a different key."
                 exit 1
               fi
               
